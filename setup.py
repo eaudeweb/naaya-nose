@@ -7,5 +7,5 @@ setup(name='edw.test',
       include_package_data=True,
       zip_safe=False,
       install_requires=[],
-      entry_points={'console_scripts': ['nyt = edw.test.run:main']},
+      entry_points={'console_scripts': ['nyt = naaya_test_entry_point:main']},
 )
