@@ -34,7 +34,7 @@ def main(part_name=None):
 
     patch_sys_path(part_name)
 
-    from edw.test.run import zope_config, make_wsgi_app
+    from naaya.test.run import zope_config, make_wsgi_app
 
     with zope_config(part_name) as config_file_path:
         app = make_wsgi_app(config_file_path, lambda db: None)

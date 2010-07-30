@@ -43,8 +43,6 @@ def publish_app(environ, start_response):
             stdout=response.stdout
             request=Request(environ['wsgi.input'], environ, response)
             setDefaultSkin(request)
-            #request['SESSION'] = self.app.REQUEST.SESSION
-            #request['AUTHENTICATED_USER'] = self.app.REQUEST.AUTHENTICATED_USER
             response = publish(request, 'Zope2', after_list, debug=0)
         except SystemExit, v:
             must_die=sys.exc_info()
