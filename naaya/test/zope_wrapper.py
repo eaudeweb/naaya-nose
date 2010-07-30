@@ -1,28 +1,10 @@
 import sys
 import os
 from os import path
-from contextlib import contextmanager
 from tempfile import mkstemp
+from contextlib import contextmanager
 
-def make_wsgi_app(config_file_path, install_fixtures):
-    import Zope2.Startup.run
-    starter = Zope2.Startup.get_starter()
-    opts = Zope2.Startup.run._setconfig(config_file_path)
-    starter.setConfiguration(opts.configroot)
-    starter.prepare()
-
-    base_db = opts.configroot.dbtab.getDatabase('/')
-    install_fixtures(base_db)
-
-    from ZODB.DemoStorage import DemoStorage
-    demo_storage = DemoStorage(base=base_db)
-
-    import Zope2
-    Zope2._stuff = (demo_storage, 'Application')
-
-    return publish_app
-
-def publish_app(environ, start_response):
+def wsgi_publish(environ, start_response):
     """
     copied from publish_module in ZPublisher/Test.py, simplified, and
     modified to accept streaming responses
@@ -88,20 +70,8 @@ def publish_app(environ, start_response):
     start_response(status, headers)
     return [body]
 
-
-def install_fixtures(db):
-    application = db.open().root()['Application']
-
-    import pdb; pdb.set_trace()
-    from Products.Naaya.NySite import manage_addNySite
-    print "naaya!"
-
 @contextmanager
-def zope_config(part_name):
-    buildout_root = path.dirname(path.dirname(sys.argv[0]))
-
-    zope_conf_path = path.join(buildout_root, 'parts', part_name,
-                               'etc', 'zope.conf')
+def conf_for_test(zope_conf_path):
     #yield zope_conf_path
 
     start_marker = '<zodb_db main>\n'
@@ -116,10 +86,30 @@ def zope_config(part_name):
     end_idx = orig_cfg.index(end_marker)
     new_cfg = orig_cfg[:start_idx] + new_text + orig_cfg[end_idx:]
 
-    fd, config_file_path = mkstemp()
+    fd, conf_path = mkstemp()
     with os.fdopen(fd, 'wb') as config_file:
         config_file.write(new_cfg)
 
-    yield config_file_path
+    yield conf_path
 
-    os.unlink(config_file_path)
+    os.unlink(conf_path)
+
+def startup(orig_conf_path, install_fixtures):
+    import Zope2.Startup.run
+
+    with conf_for_test(orig_conf_path) as conf_path:
+        starter = Zope2.Startup.get_starter()
+        opts = Zope2.Startup.run._setconfig(conf_path)
+        starter.setConfiguration(opts.configroot)
+        starter.prepare()
+
+    base_db = opts.configroot.dbtab.getDatabase('/')
+    install_fixtures(base_db)
+
+    from ZODB.DemoStorage import DemoStorage
+    demo_storage = DemoStorage(base=base_db)
+
+    import Zope2
+    Zope2._stuff = (demo_storage, 'Application')
+
+    return demo_storage.changes
