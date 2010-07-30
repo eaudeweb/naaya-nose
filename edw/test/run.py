@@ -118,20 +118,24 @@ def zope_config(part_name):
 
     zope_conf_path = path.join(buildout_root, 'parts', part_name,
                                'etc', 'zope.conf')
-    yield zope_conf_path
+    #yield zope_conf_path
 
-    #test_db = """
-    #<zodb_db main>
-    #    <mappingstorage>
-    #    </mappingstorage>
-    #    mount-point /
-    #</zodb_db>
-    #"""
+    start_marker = '<zodb_db main>\n'
+    end_marker = '</zodb_db>\n'
+    new_text = ('    <mappingstorage>\n'
+                '    </mappingstorage>\n'
+                '    mount-point /\n')
+    with open(zope_conf_path, 'rb') as f:
+        orig_cfg = f.read()
 
-    #fd, config_file_path = mkstemp()
-    #with os.fdopen(fd, 'wb') as config_file:
-    #    config_file.write(something)
+    start_idx = orig_cfg.index(start_marker) + len(start_marker)
+    end_idx = orig_cfg.index(end_marker)
+    new_cfg = orig_cfg[:start_idx] + new_text + orig_cfg[end_idx:]
 
-    #yield config_file_path
+    fd, config_file_path = mkstemp()
+    with os.fdopen(fd, 'wb') as config_file:
+        config_file.write(new_cfg)
 
-    #os.unlink(config_file_path)
+    yield config_file_path
+
+    os.unlink(config_file_path)
