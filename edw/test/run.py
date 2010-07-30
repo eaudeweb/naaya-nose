@@ -5,26 +5,14 @@ from contextlib import contextmanager
 from tempfile import mkstemp
 
 def make_wsgi_app(config_file_path, install_fixtures):
-    from App.config import setConfiguration
-    from Zope2.Startup import get_starter
-    from Zope2.Startup.handlers import handleConfig
-    from Zope2.Startup.options import ZopeOptions
-    from ZPublisher.WSGIPublisher import publish_module
-    starter = get_starter()
-    #opts = ZopeOptions()
-    #opts.configfile = config_file_path
-    #opts.realize(args=(), raise_getopt_errs=False)
-
-    #handleConfig(opts.configroot, opts.confighandlers)
-    #setConfiguration(opts.configroot)
-
-    from Zope2.Startup.run import _setconfig
-    opts = _setconfig(config_file_path)
+    import Zope2.Startup.run
+    starter = Zope2.Startup.get_starter()
+    opts = Zope2.Startup.run._setconfig(config_file_path)
     starter.setConfiguration(opts.configroot)
     starter.prepare()
 
     base_db = opts.configroot.dbtab.getDatabase('/')
-    #install_fixtures(base_db)
+    install_fixtures(base_db)
 
     from ZODB.DemoStorage import DemoStorage
     demo_storage = DemoStorage(base=base_db)
@@ -33,8 +21,6 @@ def make_wsgi_app(config_file_path, install_fixtures):
     Zope2._stuff = (demo_storage, 'Application')
 
     return publish_app
-
-    return publish_module
 
 def publish_app(environ, start_response):
     """
