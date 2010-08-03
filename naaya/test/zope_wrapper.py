@@ -94,8 +94,10 @@ def conf_for_test(zope_conf_path):
 
     os.unlink(conf_path)
 
-def startup(orig_conf_path, install_fixtures):
+def startup(orig_conf_path):
     import Zope2.Startup.run
+    import ZODB.DB
+    from ZODB.DemoStorage import DemoStorage
 
     with conf_for_test(orig_conf_path) as conf_path:
         starter = Zope2.Startup.get_starter()
@@ -103,13 +105,15 @@ def startup(orig_conf_path, install_fixtures):
         starter.setConfiguration(opts.configroot)
         starter.prepare()
 
-    base_db = opts.configroot.dbtab.getDatabase('/')
-    install_fixtures(base_db)
-
-    from ZODB.DemoStorage import DemoStorage
-    demo_storage = DemoStorage(base=base_db)
-
     import Zope2
-    Zope2._stuff = (demo_storage, 'Application')
+    orig_db = opts.configroot.dbtab.getDatabase('/')
 
-    return demo_storage.changes
+    @contextmanager
+    def db_layer():
+        base_db = Zope2.bobo_application._stuff[0]
+        wrapper_db = ZODB.DB(DemoStorage(base=base_db.storage))
+        Zope2.bobo_application._stuff = (wrapper_db, 'Application')
+        yield wrapper_db
+        Zope2.bobo_application._stuff = (base_db, 'Application')
+
+    return orig_db, db_layer
