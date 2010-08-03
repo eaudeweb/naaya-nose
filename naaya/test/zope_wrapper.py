@@ -94,7 +94,7 @@ def conf_for_test(zope_conf_path):
 
     os.unlink(conf_path)
 
-def startup(orig_conf_path):
+def zope_startup(orig_conf_path):
     import Zope2.Startup.run
     import ZODB.DB
     from ZODB.DemoStorage import DemoStorage
@@ -132,3 +132,20 @@ def startup(orig_conf_path):
             Zope2.bobo_application._stuff = (base_db, 'Application')
 
     return orig_db, db_layer
+
+class ZopeTestEnvironment(object):
+    def __init__(self, orig_db, db_layer):
+        self.orig_db = orig_db
+        self.db_layer = db_layer
+
+    wsgi_app = staticmethod(wsgi_publish)
+
+
+def zope_test_environment(buildout_part_name):
+    import sys
+    from os import path
+    buildout_root = path.dirname(path.dirname(sys.argv[0]))
+    orig_conf_path = path.join(buildout_root, 'parts', buildout_part_name,
+                                 'etc', 'zope.conf')
+    orig_db, db_layer = zope_startup(orig_conf_path)
+    return ZopeTestEnvironment(orig_db, db_layer)

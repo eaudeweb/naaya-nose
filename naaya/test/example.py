@@ -5,7 +5,6 @@ Example test case using the naaya.test infrastructure
 from contextlib import contextmanager
 import sys
 from os import path
-import harness
 
 @contextmanager
 def temp_request(app, user_id):
@@ -48,3 +47,33 @@ def test_one(app):
     with temp_request(app, 'admin'):
         new_folder = addNyFolder(portal, id='myfolder')
     print portal.myfolder
+
+def demo_http_server(tzope):
+    def wsgireffix(app):
+        from webob.dec import wsgify
+        @wsgify
+        def wrapper(request):
+            response = request.get_response(app)
+            del response.headers['Connection']
+            return response
+        return wrapper
+
+    portal_fixture(tzope.orig_db)
+
+    from wsgiref.simple_server import make_server
+    app = wsgireffix(tzope.wsgi_app)
+    httpd = make_server('127.0.0.1', 8080, app)
+
+    while True:
+        with tzope.db_layer() as db_layer:
+            print "waiting for requests. press ctrl_c to refresh db."
+            try:
+                httpd.serve_forever()
+            except SystemExit:
+                continue
+
+def main(part_name):
+    from zope_wrapper import zope_test_environment
+    tzope = zope_test_environment(part_name)
+    demo_http_server(tzope)
+    #demo_test_runner(tzope)
