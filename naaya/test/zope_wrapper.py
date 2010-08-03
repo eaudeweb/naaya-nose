@@ -110,10 +110,25 @@ def startup(orig_conf_path):
 
     @contextmanager
     def db_layer():
+        # create a DemoStorage that wraps the old storage
         base_db = Zope2.bobo_application._stuff[0]
-        wrapper_db = ZODB.DB(DemoStorage(base=base_db.storage))
+        demo_storage = DemoStorage(base=base_db.storage)
+
+        # reconstruct the mount table
+        database_name = base_db.database_name
+        new_databases = dict(base_db.databases)
+        del new_databases[database_name]
+
+        # new database with the new storage
+        wrapper_db = ZODB.DB(storage=demo_storage,
+                             database_name=database_name,
+                             databases=new_databases)
+
+        # monkey-patch the current bobo_application to use our new database
         Zope2.bobo_application._stuff = (wrapper_db, 'Application')
-        yield wrapper_db
-        Zope2.bobo_application._stuff = (base_db, 'Application')
+        try:
+            yield wrapper_db
+        finally:
+            Zope2.bobo_application._stuff = (base_db, 'Application')
 
     return orig_db, db_layer

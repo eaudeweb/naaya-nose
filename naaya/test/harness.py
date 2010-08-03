@@ -12,9 +12,17 @@ def zope_test_harness(orig_conf_path):
     orig_db, db_layer = zope_wrapper.startup(orig_conf_path)
     return TestHarness(orig_db, db_layer)
 
-def demo(part_name):
+def test_zope_for_part_name(part_name):
     import sys
     from os import path
+    buildout_root = path.dirname(path.dirname(sys.argv[0]))
+    orig_conf_path = path.join(buildout_root, 'parts', part_name,
+                                 'etc', 'zope.conf')
+
+    tzope = zope_test_harness(orig_conf_path)
+    return tzope
+
+def demo_http_server(tzope):
     from contextlib import contextmanager
 
     def wsgireffix(app):
@@ -45,11 +53,6 @@ def demo(part_name):
 
         transaction.commit()
 
-    buildout_root = path.dirname(path.dirname(sys.argv[0]))
-    orig_conf_path = path.join(buildout_root, 'parts', part_name,
-                                 'etc', 'zope.conf')
-
-    tzope = zope_test_harness(orig_conf_path)
 
     install_fixtures(tzope.orig_db)
 
@@ -63,4 +66,8 @@ def demo(part_name):
             try:
                 httpd.serve_forever()
             except SystemExit:
-                continue
+                return # continue
+
+def demo(part_name):
+    tzope = test_zope_for_part_name(part_name)
+    demo_http_server(tzope)
