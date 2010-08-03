@@ -70,4 +70,7 @@ def demo_http_server(tzope):
 
 def demo(part_name):
     tzope = test_zope_for_part_name(part_name)
-    demo_http_server(tzope)
+    #demo_http_server(tzope)
+
+    from example import demo_test_runner
+    demo_test_runner(tzope)
