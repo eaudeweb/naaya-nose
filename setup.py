@@ -1,12 +1,12 @@
 from setuptools import setup, find_packages
 
 setup(
-    name='naaya.test',
-    version='0.1',
+    name='naaya-nose',
+    version='0.2',
     author='Eau de Web',
     packages=find_packages(),
     include_package_data=True,
     zip_safe=False,
-    install_requires=[],
-    entry_points={'console_scripts': ['nytest = naaya_test_entry_point:main']},
+    install_requires=['WebOb', 'nose'],
+    entry_points={'console_scripts': ['nynose = naaya_nose:main']},
 )

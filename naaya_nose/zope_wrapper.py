@@ -140,12 +140,18 @@ class ZopeTestEnvironment(object):
 
     wsgi_app = staticmethod(wsgi_publish)
 
-
 def zope_test_environment(buildout_part_name):
     import sys
     from os import path
+
+    argv_orig = list(sys.argv)
+    sys.argv[1:] = []
+
     buildout_root = path.dirname(path.dirname(sys.argv[0]))
     orig_conf_path = path.join(buildout_root, 'parts', buildout_part_name,
                                  'etc', 'zope.conf')
     orig_db, db_layer = zope_startup(orig_conf_path)
+
+    sys.argv[:] = argv_orig
+
     return ZopeTestEnvironment(orig_db, db_layer)
