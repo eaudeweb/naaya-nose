@@ -49,28 +49,34 @@ def test_one(app):
     print portal.myfolder
 
 def demo_http_server(tzope):
-    def wsgireffix(app):
-        from webob.dec import wsgify
-        @wsgify
-        def wrapper(request):
-            response = request.get_response(app)
-            del response.headers['Connection']
-            return response
-        return wrapper
+    from webob.dec import wsgify
+
+    state = {'flush_db': False}
+
+    @wsgify.middleware
+    def wsgireffix(request, app):
+        response = request.get_response(app)
+        del response.headers['Connection']
+        return response
+
+    @wsgify.middleware
+    def flush_db_middleware(request, app):
+        if request.path_info.endswith('/__flush'):
+            state['flush_db'] = True
+        return app
 
     portal_fixture(tzope.orig_db)
 
     from wsgiref.simple_server import make_server
-    app = wsgireffix(tzope.wsgi_app)
+    app = wsgireffix(flush_db_middleware(tzope.wsgi_app))
     httpd = make_server('127.0.0.1', 8080, app)
 
     while True:
         with tzope.db_layer() as db_layer:
-            print "waiting for requests. press ctrl_c to refresh db."
-            try:
-                httpd.serve_forever()
-            except SystemExit:
-                continue
+            print "waiting for requests. Go to /__flush to reload the db."
+            while not state['flush_db']:
+                httpd.handle_request()
+            state['flush_db'] = False
 
 def main(part_name):
     from zope_wrapper import zope_test_environment
