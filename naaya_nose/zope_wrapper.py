@@ -116,7 +116,7 @@ def zope_startup(orig_conf_path):
     def db_layer():
         # create a DemoStorage that wraps the old storage
         base_db = Zope2.bobo_application._stuff[0]
-        demo_storage = DemoStorage(base=base_db.storage)
+        demo_storage = DemoStorage(base=base_db._storage)
 
         # reconstruct the mount table
         database_name = base_db.database_name
@@ -129,10 +129,10 @@ def zope_startup(orig_conf_path):
                              databases=new_databases)
 
         # monkey-patch the current bobo_application to use our new database
-        Zope2.bobo_application._stuff = (wrapper_db, 'Application')
+        Zope2.bobo_application._stuff = (wrapper_db, 'Application', 'Zope-Version')
 
         def cleanup():
-            Zope2.bobo_application._stuff = (base_db, 'Application')
+            Zope2.bobo_application._stuff = (base_db, 'Application', 'Zope-Version')
 
         return cleanup, wrapper_db
 
