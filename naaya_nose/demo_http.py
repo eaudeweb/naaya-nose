@@ -29,8 +29,12 @@ def demo_http_server(tzope):
     httpd = make_server('127.0.0.1', 8080, no_hop_by_hop(app))
 
     while True:
-        with tzope.db_layer() as db_layer:
+        _cleanup_db_layer, db_layer = tzope.db_layer()
+        try:
             print "waiting for requests. Go to /__flush to reload the db."
             while not state['flush_db']:
                 httpd.handle_request()
             state['flush_db'] = False
+
+        finally:
+            _cleanup_db_layer()

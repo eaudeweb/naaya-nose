@@ -2,7 +2,6 @@ import sys
 import os
 from os import path
 from tempfile import mkstemp
-from contextlib import contextmanager
 
 def wsgi_publish(environ, start_response):
     """
@@ -70,7 +69,6 @@ def wsgi_publish(environ, start_response):
     start_response(status, headers)
     return [body]
 
-@contextmanager
 def conf_for_test(zope_conf_path):
     #yield zope_conf_path
 
@@ -79,36 +77,42 @@ def conf_for_test(zope_conf_path):
     new_text = ('    <mappingstorage>\n'
                 '    </mappingstorage>\n'
                 '    mount-point /\n')
-    with open(zope_conf_path, 'rb') as f:
-        orig_cfg = f.read()
+    f = open(zope_conf_path, 'rb')
+    orig_cfg = f.read()
+    f.close()
 
     start_idx = orig_cfg.index(start_marker) + len(start_marker)
     end_idx = orig_cfg.index(end_marker)
     new_cfg = orig_cfg[:start_idx] + new_text + orig_cfg[end_idx:]
 
     fd, conf_path = mkstemp()
-    with os.fdopen(fd, 'wb') as config_file:
-        config_file.write(new_cfg)
+    config_file = os.fdopen(fd, 'wb')
+    config_file.write(new_cfg)
+    config_file.close()
 
-    yield conf_path
+    def cleanup():
+        os.unlink(conf_path)
 
-    os.unlink(conf_path)
+    return cleanup, conf_path
 
 def zope_startup(orig_conf_path):
     import Zope2.Startup.run
     import ZODB.DB
     from ZODB.DemoStorage import DemoStorage
 
-    with conf_for_test(orig_conf_path) as conf_path:
+    _cleanup_conf, conf_path = conf_for_test(orig_conf_path)
+    try:
         starter = Zope2.Startup.get_starter()
         opts = Zope2.Startup.run._setconfig(conf_path)
         starter.setConfiguration(opts.configroot)
         starter.prepare()
 
+    finally:
+        _cleanup_conf()
+
     import Zope2
     orig_db = opts.configroot.dbtab.getDatabase('/')
 
-    @contextmanager
     def db_layer():
         # create a DemoStorage that wraps the old storage
         base_db = Zope2.bobo_application._stuff[0]
@@ -126,10 +130,11 @@ def zope_startup(orig_conf_path):
 
         # monkey-patch the current bobo_application to use our new database
         Zope2.bobo_application._stuff = (wrapper_db, 'Application')
-        try:
-            yield wrapper_db
-        finally:
+
+        def cleanup():
             Zope2.bobo_application._stuff = (base_db, 'Application')
+
+        return cleanup, wrapper_db
 
     return orig_db, db_layer
 
