@@ -99,6 +99,7 @@ def zope_startup(orig_conf_path):
     import Zope2.Startup.run
     import ZODB.DB
     from ZODB.DemoStorage import DemoStorage
+    from ZODB.interfaces import IBlobStorage
 
     _cleanup_conf, conf_path = conf_for_test(orig_conf_path)
     try:
@@ -117,6 +118,13 @@ def zope_startup(orig_conf_path):
         # create a DemoStorage that wraps the old storage
         base_db = Zope2.bobo_application._stuff[0]
         demo_storage = DemoStorage(base=base_db._storage)
+        if not IBlobStorage.providedBy(demo_storage):
+            from ZODB.blob import BlobStorage
+            from tempfile import mkdtemp
+            blob_temp = mkdtemp()
+            demo_storage = BlobStorage(blob_temp, demo_storage)
+        else:
+            blob_temp = None
 
         # reconstruct the mount table
         database_name = base_db.database_name
@@ -133,6 +141,9 @@ def zope_startup(orig_conf_path):
 
         def cleanup():
             Zope2.bobo_application._stuff = (base_db, 'Application', 'Zope-Version')
+            if blob_temp is not None:
+                import shutil
+                shutil.rmtree(blob_temp)
 
         return cleanup, wrapper_db
 
