@@ -25,14 +25,14 @@ def main(buildout_part_name):
     assert buildout_part_name is not None, \
             "Please specify the name of a buildout part"
 
-    print "Preparing Zope environment ..."
+    print>>sys.stderr, "Preparing Zope environment ..."
     t0 = time()
     patch_sys_path(buildout_part_name)
     from zope_wrapper import zope_test_environment
     tzope = zope_test_environment(buildout_part_name)
-    print "Zope environment loaded in %.3f seconds" % (time() - t0)
+    print>>sys.stderr, "Zope environment loaded in %.3f seconds" % (time()-t0)
 
     #from demo_http import demo_http_server; demo_http_server(tzope)
 
-    print "Calling nose.main ... "
+    print>>sys.stderr, "Calling nose.main ... "
     call_nose_main(tzope)
