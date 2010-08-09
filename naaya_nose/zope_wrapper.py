@@ -19,11 +19,11 @@ def wsgi_publish(environ, start_response):
 
     must_die=0
     after_list=[None]
+    response = ZServerHTTPResponse(stdout=outstream, stderr=sys.stderr)
+    stdout = response.stdout
+    request = Request(environ['wsgi.input'], environ, response)
     try:
         try:
-            response = ZServerHTTPResponse(stdout=outstream, stderr=sys.stderr)
-            stdout=response.stdout
-            request=Request(environ['wsgi.input'], environ, response)
             setDefaultSkin(request)
             response = publish(request, 'Zope2', after_list, debug=0)
         except SystemExit, v:
