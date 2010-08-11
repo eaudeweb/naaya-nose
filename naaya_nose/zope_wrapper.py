@@ -78,7 +78,7 @@ def conf_for_test(zope_conf_path):
                 '    </mappingstorage>\n'
                 '    mount-point /\n')
     f = open(zope_conf_path, 'rb')
-    orig_cfg = f.read()
+    orig_cfg = f.read().replace('\r\n', '\n')
     f.close()
 
     start_idx = orig_cfg.index(start_marker) + len(start_marker)

@@ -7,9 +7,15 @@ def patch_sys_path(buildout_part_name):
     # must be done before importing any namespace package
     buildout_root = path.dirname(path.dirname(sys.argv[0]))
     part_script = path.join(buildout_root, 'bin', buildout_part_name)
+
+    if not path.isfile(part_script):
+        # on windows, buildout does funny things
+        part_script += '-script.py'
+        assert path.isfile(part_script)
+
     f = open(part_script, 'rb')
     try:
-        all_script = f.read()
+        all_script = f.read().replace('\r\n', '\n')
         end = 'import plone.recipe.zope2instance.ctl'
         script = all_script[:all_script.index(end)]
     finally:
