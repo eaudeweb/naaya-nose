@@ -25,7 +25,8 @@ def patch_sys_path(buildout_part_name):
 def call_nose_main(tzope):
     from nose import main
     from Products.Naaya.tests.NaayaTestCase import NaayaPortalTestPlugin
-    main(addplugins=[NaayaPortalTestPlugin(tzope)])
+    from Products.Naaya.tests.SeleniumTestCase import NaayaSeleniumTestPlugin
+    main(addplugins=[NaayaPortalTestPlugin(tzope), NaayaSeleniumTestPlugin(tzope)])
 
 def main(buildout_part_name):
     assert buildout_part_name is not None, \
