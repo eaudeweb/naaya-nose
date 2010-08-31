@@ -3,8 +3,6 @@ import os
 from os import path
 from tempfile import mkstemp
 
-import Zope2
-
 def wsgi_publish(environ, start_response):
     """
     copied from publish_module in ZPublisher/Test.py, simplified, and
@@ -97,15 +95,21 @@ def conf_for_test(zope_conf_path):
 
     return cleanup, conf_path
 
-# the following two classes are here because our Zope instance MUST NOT listen
-# on any port
-class DummyWindowsZopeStarter(Zope2.Startup.WindowsZopeStarter):
-    def setupServers(self):
-        pass
-
-class DummyUnixZopeStarter(Zope2.Startup.UnixZopeStarter):
-    def setupServers(self):
-        pass
+def get_dummy_starter():
+    # copy of Zope2.Startup.get_starter(). Change is in the included classes
+    # because our Zope instance MUST NOT listen on any port
+    import Zope2
+    Zope2.Startup.check_python_version()
+    if sys.platform[:3].lower() == "win":
+        class DummyWindowsZopeStarter(Zope2.Startup.WindowsZopeStarter):
+            def setupServers(self):
+                pass
+        return DummyWindowsZopeStarter()
+    else:
+        class DummyUnixZopeStarter(Zope2.Startup.UnixZopeStarter):
+            def setupServers(self):
+                pass
+        return DummyUnixZopeStarter()
 
 def zope_startup(orig_conf_path):
     import Zope2.Startup.run
@@ -113,17 +117,9 @@ def zope_startup(orig_conf_path):
     from ZODB.DemoStorage import DemoStorage
     from ZODB.interfaces import IBlobStorage
 
-    def get_starter():
-        # copy of Zope2.Startup.get_starter()
-        Zope2.Startup.check_python_version()
-        if sys.platform[:3].lower() == "win":
-            return DummyWindowsZopeStarter()
-        else:
-            return DummyUnixZopeStarter()
-
     _cleanup_conf, conf_path = conf_for_test(orig_conf_path)
     try:
-        starter = get_starter()
+        starter = get_dummy_starter()
         opts = Zope2.Startup.run._setconfig(conf_path)
         starter.setConfiguration(opts.configroot)
         starter.prepare()
