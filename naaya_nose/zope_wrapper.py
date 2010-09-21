@@ -143,14 +143,20 @@ def zope_startup(orig_conf_path):
             blob_temp = None
 
         # reconstruct the mount table
-        database_name = base_db.database_name
-        new_databases = dict(base_db.databases)
-        del new_databases[database_name]
+        wrapper_databases = {}
+        for mount_name, mount_db in base_db.databases.iteritems():
+            if mount_name == base_db.database_name:
+                continue # don't mount the main db over itself
+            # wrap each piece of the mount table in a DemoStorage
+            new_storage = mount_db._storage
+            wrapper_mount_db = ZODB.DB(storage=DemoStorage(base=new_storage),
+                                       database_name=mount_db.database_name)
+            wrapper_databases[mount_name] = wrapper_mount_db
 
         # new database with the new storage
         wrapper_db = ZODB.DB(storage=demo_storage,
-                             database_name=database_name,
-                             databases=new_databases)
+                             database_name=base_db.database_name,
+                             databases=wrapper_databases)
 
         # monkey-patch the current bobo_application to use our new database
         Zope2.bobo_application._stuff = (wrapper_db, 'Application', 'Zope-Version')
