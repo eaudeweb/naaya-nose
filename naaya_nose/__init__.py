@@ -22,11 +22,14 @@ def patch_sys_path(buildout_part_name):
         f.close()
     exec script
 
-def call_nose_main(tzope):
+def call_nose_main(tzope, with_selenium=False):
     from nose import main
     from Products.Naaya.tests.NaayaTestCase import NaayaPortalTestPlugin
-    from Products.Naaya.tests.SeleniumTestCase import NaayaSeleniumTestPlugin
-    main(addplugins=[NaayaPortalTestPlugin(tzope), NaayaSeleniumTestPlugin(tzope)])
+    if with_selenium:
+        from Products.Naaya.tests.SeleniumTestCase import NaayaSeleniumTestPlugin
+        main(addplugins=[NaayaPortalTestPlugin(tzope), NaayaSeleniumTestPlugin(tzope)])
+    else:
+        main(addplugins=[NaayaPortalTestPlugin(tzope)])
 
 def main(buildout_part_name):
     assert buildout_part_name is not None, \
