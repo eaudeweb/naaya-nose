@@ -130,6 +130,14 @@ def zope_startup(orig_conf_path):
     import Zope2
     orig_db = opts.configroot.dbtab.getDatabase('/')
 
+    def patch_bobo_application(new_db):
+        import App
+        if App.version_txt.getZopeVersion() >= (2, 12):
+            p = (new_db, 'Application')
+        else:
+            p = (new_db, 'Application', 'Zope-Version')
+        Zope2.bobo_application._stuff = p
+
     def db_layer():
         # create a DemoStorage that wraps the old storage
         base_db = Zope2.bobo_application._stuff[0]
@@ -159,10 +167,10 @@ def zope_startup(orig_conf_path):
                              databases=wrapper_databases)
 
         # monkey-patch the current bobo_application to use our new database
-        Zope2.bobo_application._stuff = (wrapper_db, 'Application', 'Zope-Version')
+        patch_bobo_application(wrapper_db)
 
         def cleanup():
-            Zope2.bobo_application._stuff = (base_db, 'Application', 'Zope-Version')
+            patch_bobo_application(base_db)
             if blob_temp is not None:
                 import shutil
                 shutil.rmtree(blob_temp)
