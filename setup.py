@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='naaya-nose',
-    version='0.4.1',
+    version='0.4.2',
     author='Eau de Web',
     packages=find_packages(),
     include_package_data=True,

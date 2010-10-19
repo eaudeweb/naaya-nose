@@ -122,7 +122,9 @@ def zope_startup(orig_conf_path):
         starter = get_dummy_starter()
         opts = Zope2.Startup.run._setconfig(conf_path)
         starter.setConfiguration(opts.configroot)
+        starter.cfg.debug_mode = True
         starter.prepare()
+        starter.debug_handler.setLevel(100) # disable debug logging
 
     finally:
         _cleanup_conf()
