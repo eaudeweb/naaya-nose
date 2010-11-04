@@ -28,9 +28,17 @@ def call_nose_main(tzope):
     from Products.Naaya.tests.SeleniumTestCase import NaayaSeleniumTestPlugin
     main(addplugins=[NaayaPortalTestPlugin(tzope), NaayaSeleniumTestPlugin(tzope)])
 
-def main(buildout_part_name):
-    assert buildout_part_name is not None, \
-            "Please specify the name of a buildout part"
+def main(buildout_part_name=None):
+    """
+    Main entry point. Set up Zope2 and then call `nose`.
+
+    We take a single argument, `buildout_part_name`. It can be provided as
+    function argument (zc.recipe.egg can pass it) or command-line argument.
+    """
+    if buildout_part_name is None:
+        buildout_part_name = sys.argv[1]
+        del sys.argv[1]
+
     nycoverage = "--nycoverage" in sys.argv
     if nycoverage:
         from coverage import coverage
