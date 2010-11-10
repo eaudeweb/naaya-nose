@@ -72,11 +72,15 @@ def wsgi_publish(environ, start_response):
 def conf_for_test(zope_conf_path):
     #yield zope_conf_path
 
-    start_marker = '<zodb_db main>\n'
-    end_marker = '</zodb_db>\n'
-    new_text = ('    <mappingstorage>\n'
-                '    </mappingstorage>\n'
-                '    mount-point /\n')
+    if sys.platform == 'win32':
+        newline = '\r\n'
+    else:
+        newline = '\n'
+    start_marker = '<zodb_db main>'+newline
+    end_marker = '</zodb_db>'+newline
+    new_text = ('    <mappingstorage>'+newline +
+                '    </mappingstorage>'+newline +
+                '    mount-point /'+newline)
     f = open(zope_conf_path, 'rb')
     orig_cfg = f.read()
     f.close()
