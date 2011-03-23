@@ -24,9 +24,21 @@ def patch_sys_path(buildout_part_name):
 
 def call_nose_main(tzope):
     from nose import main
+
+    plugins = []
     from Products.Naaya.tests.NaayaTestCase import NaayaPortalTestPlugin
     from Products.Naaya.tests.SeleniumTestCase import NaayaSeleniumTestPlugin
-    main(addplugins=[NaayaPortalTestPlugin(tzope), NaayaSeleniumTestPlugin(tzope)])
+
+    plugins.append(NaayaPortalTestPlugin(tzope))
+    plugins.append(NaayaSeleniumTestPlugin(tzope))
+
+    try:
+        from naaya.groupware.tests import GWPortalTestPlugin
+        plugins.append(GWPortalTestPlugin(tzope))
+    except ImportError:
+        pass
+
+    main(addplugins=plugins)
 
 def main(buildout_part_name=None):
     """
