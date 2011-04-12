@@ -129,7 +129,6 @@ def zope_startup(orig_conf_path):
         starter.cfg.debug_mode = True
         starter.prepare()
         starter.debug_handler.setLevel(100) # disable debug logging
-
     finally:
         _cleanup_conf()
 
@@ -156,21 +155,14 @@ def zope_startup(orig_conf_path):
         else:
             blob_temp = None
 
-        # reconstruct the mount table
-        wrapper_databases = {}
-        for mount_name, mount_db in base_db.databases.iteritems():
-            if mount_name == base_db.database_name:
-                continue # don't mount the main db over itself
-            # wrap each piece of the mount table in a DemoStorage
-            new_storage = mount_db._storage
-            wrapper_mount_db = ZODB.DB(storage=DemoStorage(base=new_storage),
-                                       database_name=mount_db.database_name)
-            wrapper_databases[mount_name] = wrapper_mount_db
-
+        #Remove from databases the main database otherwise it will result in
+        #an error on creation of the DB
+        base_db.databases.pop(base_db.database_name, None)
+        
         # new database with the new storage
         wrapper_db = ZODB.DB(storage=demo_storage,
                              database_name=base_db.database_name,
-                             databases=wrapper_databases)
+                             databases=base_db.databases)
 
         # monkey-patch the current bobo_application to use our new database
         patch_bobo_application(wrapper_db)
