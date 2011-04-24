@@ -38,6 +38,9 @@ def call_nose_main(tzope):
     except ImportError:
         pass
 
+    from timer_plugin import Timer
+    plugins.append(Timer())
+
     main(addplugins=plugins)
 
 def main(buildout_part_name=None):
@@ -57,6 +60,7 @@ def main(buildout_part_name=None):
         cov = coverage()
         cov.start()
         sys.argv.pop(sys.argv.index("--nycoverage"))
+
     try:
         print>>sys.stderr, "Preparing Zope environment ..."
         t0 = time()
