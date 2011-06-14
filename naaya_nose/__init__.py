@@ -42,6 +42,9 @@ def call_nose_main(tzope):
     except ImportError:
         pass
 
+    from timer_plugin import Timer
+    plugins.append(Timer())
+
     main(addplugins=plugins)
 
 def main(buildout_part_name=None):
@@ -61,7 +64,6 @@ def main(buildout_part_name=None):
     from zope_wrapper import zope_test_environment
     tzope = zope_test_environment(buildout_part_name)
     log.info("Zope environment loaded in %.3f seconds" % (time()-t0))
-
     log.info("Calling nose.main ... ")
     call_nose_main(tzope)
 
