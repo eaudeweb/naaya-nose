@@ -1,7 +1,11 @@
 import sys
-import os
 from os import path
 from time import time
+import logging
+
+log = logging.getLogger('naaya nose')
+log.setLevel(logging.INFO)
+log.addHandler(logging.StreamHandler(sys.stderr))
 
 def patch_sys_path(buildout_part_name):
     # must be done before importing any namespace package
@@ -51,38 +55,13 @@ def main(buildout_part_name=None):
         buildout_part_name = sys.argv[1]
         del sys.argv[1]
 
-    nycoverage = "--nycoverage" in sys.argv
-    if nycoverage:
-        from coverage import coverage
-        cov = coverage()
-        cov.start()
-        sys.argv.pop(sys.argv.index("--nycoverage"))
-    try:
-        print>>sys.stderr, "Preparing Zope environment ..."
-        t0 = time()
-        patch_sys_path(buildout_part_name)
-        from zope_wrapper import zope_test_environment
-        tzope = zope_test_environment(buildout_part_name)
-        print>>sys.stderr, "Zope environment loaded in %.3f seconds" % (time()-t0)
+    log.info("Preparing Zope environment ...")
+    t0 = time()
+    patch_sys_path(buildout_part_name)
+    from zope_wrapper import zope_test_environment
+    tzope = zope_test_environment(buildout_part_name)
+    log.info("Zope environment loaded in %.3f seconds" % (time()-t0))
 
-        #from demo_http import demo_http_server; demo_http_server(tzope)
+    log.info("Calling nose.main ... ")
+    call_nose_main(tzope)
 
-        print>>sys.stderr, "Calling nose.main ... "
-        call_nose_main(tzope)
-    finally:
-        if nycoverage:
-            t0 = time()
-            cov.stop()
-            cov.save()
-            print>>sys.stderr, ("[NyCoverage] Coverage binary information saved in"
-                                " .coverage")
-            f = open(".coverage-report", "wb")
-            cov.report(file=f, ignore_errors=True)
-            f.close()
-            print>>sys.stderr, ("[NyCoverage] Text report saved in "
-                                ".coverage-report")
-            cov.html_report(directory="coverage_html", ignore_errors=True)
-            print>>sys.stderr, ("[NyCoverage] Html report saved in "
-                                "coverage_html directory")
-            print>>sys.stderr, ("Coverage reports generated in %.3f seconds"
-                               % (time()-t0))
