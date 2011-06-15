@@ -1,6 +1,5 @@
 import sys
 import os
-from os import path
 from tempfile import mkstemp
 
 def wsgi_publish(environ, start_response):
@@ -29,8 +28,10 @@ def wsgi_publish(environ, start_response):
             must_die=sys.exc_info()
             response.exception(must_die)
         except ImportError, v:
-            if isinstance(v, TupleType) and len(v)==3: must_die=v
-            else: must_die=sys.exc_info()
+            if isinstance(v, tuple) and len(v)==3:
+                must_die=v
+            else:
+                must_die=sys.exc_info()
             response.exception(1, v)
         except:
             response.exception()
@@ -115,13 +116,16 @@ def get_dummy_starter():
                 pass
         return DummyUnixZopeStarter()
 
-def zope_startup(orig_conf_path):
+def zope_startup(orig_conf_path, nodemo=False):
     import Zope2.Startup.run
     import ZODB.DB
     from ZODB.DemoStorage import DemoStorage
     from ZODB.interfaces import IBlobStorage
 
-    _cleanup_conf, conf_path = conf_for_test(orig_conf_path)
+    if nodemo is False:
+        _cleanup_conf, conf_path = conf_for_test(orig_conf_path)
+    else:
+        _cleanup_conf, conf_path = None, orig_conf_path
     try:
         starter = get_dummy_starter()
         opts = Zope2.Startup.run._setconfig(conf_path)
@@ -130,7 +134,8 @@ def zope_startup(orig_conf_path):
         starter.prepare()
         starter.debug_handler.setLevel(100) # disable debug logging
     finally:
-        _cleanup_conf()
+        if callable(_cleanup_conf):
+            _cleanup_conf()
 
     import Zope2
     orig_db = opts.configroot.dbtab.getDatabase('/')
@@ -144,21 +149,24 @@ def zope_startup(orig_conf_path):
         Zope2.bobo_application._stuff = p
 
     def db_layer():
-        # create a DemoStorage that wraps the old storage
+        """"Create a DemoStorage that wrapps the original storage if `nodemo`
+        is False.
+
+        """
         base_db = Zope2.bobo_application._stuff[0]
+        blob_temp = None
+
         demo_storage = DemoStorage(base=base_db._storage)
         if not IBlobStorage.providedBy(demo_storage):
             from ZODB.blob import BlobStorage
             from tempfile import mkdtemp
             blob_temp = mkdtemp()
             demo_storage = BlobStorage(blob_temp, demo_storage)
-        else:
-            blob_temp = None
 
         #Remove from databases the main database otherwise it will result in
         #an error on creation of the DB
         base_db.databases.pop(base_db.database_name, None)
-        
+
         # new database with the new storage
         wrapper_db = ZODB.DB(storage=demo_storage,
                              database_name=base_db.database_name,
@@ -172,7 +180,6 @@ def zope_startup(orig_conf_path):
             if blob_temp is not None:
                 import shutil
                 shutil.rmtree(blob_temp)
-
         return cleanup, wrapper_db
 
     return orig_db, db_layer
@@ -188,13 +195,19 @@ def zope_test_environment(buildout_part_name):
     import sys
     from os import path
 
+    #Use the original database with all sites. Useful for staging tests.
+    nodemo = False
+    if '--nodemo' in sys.argv:
+        nodemo = True
+        sys.argv.remove('--nodemo')
+
     argv_orig = list(sys.argv)
     sys.argv[1:] = []
 
     buildout_root = path.dirname(path.dirname(sys.argv[0]))
     orig_conf_path = path.join(buildout_root, 'parts', buildout_part_name,
                                  'etc', 'zope.conf')
-    orig_db, db_layer = zope_startup(orig_conf_path)
+    orig_db, db_layer = zope_startup(orig_conf_path, nodemo)
 
     sys.argv[:] = argv_orig
 
